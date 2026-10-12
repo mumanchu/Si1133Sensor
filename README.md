@@ -126,7 +126,7 @@ The number of 21MHz clocks per measurement. Note that two measurements are alway
 
 ## Threshold Settings, p33
 
-There are three programmable threshold values. Each channel can use one of these three threshold values, selected according to the `THRESH_SEL` bits for each channel. The `INT` output is is activated if the reading exceeds the threshold value.
+There are three programmable threshold values. Each channel can use one of these three threshold values, selected according to the `THRESH_SEL` bits for each channel. The `INT` output is is activated if the channel's reading exceeds the threshold value.
 
 The problem is, the threshold value is dependent on `HSIG`, `SW_GAIN` and `HW_GAIN`. If the `automaticGainControl()` feature is used then the threshold value will be invalidated whenever the gain is changed. 
 

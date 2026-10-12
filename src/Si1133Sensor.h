@@ -4,10 +4,12 @@
 // Si1133 UV, IR and ALS Sensor (obsolete)
 // Copyright (C) https://muman.ch and https://github.com/mumanchu, 2017, 2026
 // If you re-use this code, please include the above copyright notice
-
 /*
 Full details of this Arduino-style library can be found here,
-https://muman.ch/index.htm?muman-uv-sensors.htm#muman-si1133
+https://github.com/mumanchu/Si1133Sensor
+
+And there's more in the original blog about UV Sensors
+https://muman.ch/index.htm?muman-uv-sensors.htm
 
 DATA SHEET, Rev. 0.91
 Page numbers refer to this version of the data sheet,

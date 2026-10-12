@@ -141,6 +141,6 @@ https://www.silabs.com/documents/public/application-notes/AN968-Si1133-UV-Index-
 
 ## Joke of the Week
 
-
-
+I'm lactose intolerant. \
+I hate people without toes.
 

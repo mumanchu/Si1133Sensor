@@ -93,12 +93,12 @@ In forced mode, all channels are read sequentially and the `IRQ_STATUS` bits are
 
 In autonomous mode, each channel bit in `IRQ_STATUS` is set as each channel's reading is taken, so each reading can be read individually. But it still takes the same amount of time to obtain all the readings.
 
-In both cases you must poll IRQ_STATUS or the INT output to determine when a reading is ready, to avoid reading the values at the moment they may be changing.
+In both cases you must poll `IRQ_STATUS` or the INT output to determine when a reading is ready, to avoid reading the values at the moment they may be changing.
 
 
 ## SW_GAIN (0..7 = 1..128), p32
 
-This is not really a gain, it is an accumulation of readings for averaging. After the number of readings has been taken the result can be shifted right to divide by the number of readings taken by setting the `ADCPOSTx.POSTSHIFT` value (0..7) to match the number of accumulated readings (0..7 = 1..128). Or you can do that yourself after reading the 24-bit total.
+This is not really a gain, it is an accumulation of readings for averaging. After the number of readings has been taken, the result can be shifted right to divide by the number of readings taken with the `ADCPOSTx.POSTSHIFT` value (0..7). This should normally match the number of accumulated readings (0..7 = 1..128). Or you can do that yourself from the 24-bit sum.
 
 Number of readings to sum = `(1 << SW_GAIN)`
 

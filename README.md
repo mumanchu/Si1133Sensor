@@ -112,7 +112,7 @@ So you cannot use `automaticGainControl()` if you want to use the threshold valu
 
 ## References
 
-**S11133 Data Sheet, Rev. 0.91** \
+**Si1133 Data Sheet, Rev. 0.91** \
 All page numbers refer to this version of the data sheet \
 https://muman.ch/pub/Si1133.pdf
 

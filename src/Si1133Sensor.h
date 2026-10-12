@@ -1,18 +1,24 @@
 #pragma once
 
 ///////////////////////////////////////////////////////////////////////////////
-// Si1133 UV + ALS Sensor
-// Copyright (C) https://muman.ch and https://github.com/mumanchu
+// Si1133 UV, IR and ALS Sensor (obsolete)
+// Copyright (C) https://muman.ch and https://github.com/mumanchu, 2017, 2026
 // If you re-use this code, please include the above copyright notice
-// See https://muman.ch/index.htm?muman-uv-sensors.htm#muman-si1133
+
 /*
-DATA SHEET Rev. 0.91
-https://download.mikroe.com/documents/datasheets/Si1133.pdf
-DESIGN GUIDE
+Full details of this Arduino-style library can be found here,
+https://muman.ch/index.htm?muman-uv-sensors.htm#muman-si1133
+
+DATA SHEET, Rev. 0.91
+Page numbers refer to this version of the data sheet,
+https://muman.ch/pub/Si1133.pdf
+
+AN968 Si1133 OPTICAL DESIGN GUIDE, etc.
 https://www.silabs.com/documents/public/application-notes/AN968-Si1133-UV-Index-Sensor-Electrical-and-Optical-Design-Guide.pdf
 */
 
 #include <Wire.h>
+
 
 class Si1133Sensor
 {
@@ -26,14 +32,14 @@ public:
 	typedef enum : byte
 	{
 		PART_ID = 0x00,			// 0x33 for Si1133
-		HW_ID = 0x01,			  // ssssiiii, ssss=silicon HW rev, iiii=implementation code
+		HW_ID = 0x01,			// ssssiiii, ssss=silicon HW rev, iiii=implementation code
 		REV_ID = 0x02,			// mmmmnnnn, mmmm=major, nnnn=minor
 		HOSTIN0 = 0x0A,			// Parameter values for PARAM_SET command 
 		COMMAND = 0x0B,			// see Si113_CMD
-		IRQ_ENABLE = 0x0F,	// 00543210, IRQ enable bits for channels 5 4 3 2 1 0 when ready
+		IRQ_ENABLE = 0x0F,		// 00543210, IRQ enable bits for channels 5 4 3 2 1 0 when ready
 		RESPONSE1 = 0x10,		// Parameter value for PARAM_QUERY, or parameter that was written for PARAM_SET
 		RESPONSE0 = 0x11,		// rspecccc, r=running, s=suspend, p=sleep, e=CMD_ERR, cccc=CMD_CTR, see Note (1) below
-		IRQ_STATUS = 0x12,	// 00543210, IRQx active bit for channels 5 4 3 2 1 0 when ready, cleared when read
+		IRQ_STATUS = 0x12,		// 00543210, IRQx active bit for channels 5 4 3 2 1 0 when ready, cleared when read
 		HOSTOUT0 = 0x13,		// Sensor readings according to CHAN_LIST, 16 or 24-bit values, MS byte first (bigstartian)
 		//HOSTOUT1..HOSTOUT24	// 26 bytes in all, see ADCPOSTx..24BIT_OUT
 		HOSTOUT25 = 0x2C
@@ -55,8 +61,8 @@ public:
 	// Parameter Numbers
 	typedef enum : byte
 	{
-		I2C_ADDR = 0x00,	// Can be programmed with a new I2C address, set to 0 on reset
-		CHAN_LIST = 0x01,	// xx543210, 1=channel enabled, 0=disabled
+		I2C_ADDR = 0x00,    // Can be programmed with a new I2C address, set to 0 on reset
+		CHAN_LIST = 0x01,   // xx543210, 1=channel enabled, 0=disabled
 		
 		// The bits in these parameters are not defined as enums. You only use them once, 
 		// read the relevant page numbers in the data sheet to get the details
@@ -126,10 +132,10 @@ public:
 	// Commands, written to COMMAND register
 	typedef enum : byte
 	{
-		RESET_CMD_CTR = 0x00,  // Reset RESPONSE0 CMD_CTR field to 0 and does nothing else
-		RESET_SW = 0x01,       // Force a power-up reset, RESPONSE0 CMD_CTR set to xxx01111
-		FORCE = 0x11,        // Initiate CHAN_LIST measurements that don't have MEASCONFIGx
-		PAUSE = 0x12,			    // Pause autonomous measurements specified in CHAN_LIST
+		RESET_CMD_CTR = 0x00,	// Reset RESPONSE0 CMD_CTR field to 0 and does nothing else
+		RESET_SW = 0x01,		// Force a power-up reset, RESPONSE0 CMD_CTR set to xxx01111
+		FORCE = 0x11,			// Initiate CHAN_LIST measurements that don't have MEASCONFIGx
+		PAUSE = 0x12,			// Pause autonomous measurements specified in CHAN_LIST
 		START = 0x13,			// Start autonomous measurements specified in CHAN_LIST
 		PARAM_QUERY = 0x40,		// 01xxxxxx, read param xxxxxx to RESPONSE1
 		PARAM_SET = 0x80		// 10xxxxxx, writeINPUT0 to param xxxxxx
@@ -155,8 +161,15 @@ public:
 	} Si1133_CONFIG;
 	#pragma pack(pop)
 
+	// Constants for UV Index calculation, calculateUVI()
+	// - modify K according to the diffuser characteristics
+	// - calculate M according to the settings (TODO)
+	// These values are for a typical diffuser, ADC gain = 9, decimation filter = 3
+	// see Data Sheet p5 and the AN968 Design Guide
+	float uviK = 0.0187f;
+	float uviM = 0.00391f;
 
-	// errorCode, set non-zero if a command fails, p17
+	// cmdError error code, set non-zero if a command fails, p17
 	// check this value if a method returns false
 	// 0x00 = command executed successfully
 	// 0x10 = invalid command
@@ -421,18 +434,24 @@ uint Si1133Sensor::getNumberOfChannels()
 	return numberOfChannels;
 }
 
-// Read all measurements with one I2C message, always reads 18 bytes in I2C
-// burst mode, which is fast.
+
+// IMPORTANT!
+// The chip should be in SLEEP mode (in between readings) when measurements
+// are read, so they are not read at the moment they are changing. This is 
+// NOT checked for in the code below. But if IRQ_STATUS has just been set 
+// then it is safe.
+
+// Read all measurements with one I2C burst message, always reads 18 bytes.
 // Do not call this until you know the measurements are ready, check
 // readIRQStatus() first and use the 'conversionTimeMs' value to limit the 
 // polling rate.
-// The number of values returned depends on the channel configuration, it 
-// is not hard-wired.
+// The number of values returned depends on the channel configuration, it is 
+// not hard-wired.
 // ulong* must point to a ulong array the size of the number of channels.
-// 16 and 24-bit values are both returned in ulong, but 16-bit values only
+// 16 and 24-bit values are both returned in ulong, but 16-bit values only 
 // use the lower 16 bits.
 // Saturation/overflow is returned as 0xFFFFFFFF (-1) for both 16 and 24-bit 
-// values (not 0xFFFF for 16-bit, or 0x7FFFFF for 24-bit).
+// values (not 0xFFFF for 16-bit and 0x7FFFFF for 24-bit).
 bool Si1133Sensor::readMeasurements(ulong* values, uint* numberOfValues)
 {
 	*numberOfValues = 0;
@@ -493,6 +512,7 @@ bool Si1133Sensor::readMeasurements(ulong* values, uint* numberOfValues)
 // increases. Use the 'conversionTimeMs' value to regulate the IRQ_STATUS polling.
 // 'values' & 'numberOfValues' are the raw values returned by readMeasurements().
 // The DECIM_RATE remains fixed.
+// TODO also update the M factor used by calculateUVI().
 bool Si1133Sensor::automaticGainControl(ulong* values, uint numberOfValues)
 {
 	uint channelMask = 1;
@@ -618,7 +638,7 @@ bool Si1133Sensor::automaticGainControl(ulong* values, uint numberOfValues)
 
 // Adjust the measurements according to the gain etc.
 // All are normalised to the highest gain x128, for other gains just shift 
-// the results right.
+// the 32-bit results right.
 // 'values' must point to the raw values returned by readMeasurements()
 // 'numberOfValues' must match the number of channels
 bool Si1133Sensor::normaliseMeasurements(const ulong* values, uint numberOfValues, 
@@ -686,11 +706,9 @@ bool Si1133Sensor::normaliseMeasurements(const ulong* values, uint numberOfValue
 			// SW_GAIN : number of accumulated samples in 24 bits, with optional shift right
 			// (in FORCED mode, IRQ is not asserted until all samples taken and postShift was done)
 			if (swGain) {
-
-				//TODO check this
-
+				// if postShift divides by the number of samples, do nothing (shift==0)
 				int shift = swGain - postShift;
-				//TODO Are these configuration errors?
+				//TODO are these really configuration errors?
 				// shift right is greater than the accumulated samples, so shift left
 				if (shift < 0)
 					value <<= -shift;
@@ -703,7 +721,7 @@ bool Si1133Sensor::normaliseMeasurements(const ulong* values, uint numberOfValue
 			if (hwGain < 11)
 				value <<= (11 - hwGain);
 
-			// save normalised value
+			// normalised value!
 			normalisedValues[ixValue++] = value;
 		}
 		channelMask <<= 1;
@@ -715,7 +733,7 @@ bool Si1133Sensor::normaliseMeasurements(const ulong* values, uint numberOfValue
 
 // Calculate the total conversion time in milliseconds for all channels
 // >>> FOR FORCED MODE ONLY! <<<
-// It takes into account the defined channels, HW_GAIN, SW_GAIN and DECIM_RATE
+// It takes into account the defined channels, HW_GAIN, SW_GAIN and DECIM_RATE.
 // Note that the conversion time is also calculated when automaticGainControl() 
 // is called, so you can adjust the IRQ_STATUS polling rate according to the
 // conversion time.
@@ -761,7 +779,7 @@ bool Si1133Sensor::calculateConversionTime(ulong* conversionTimeMs)
 			static const byte measTime[4] = { 50, 98, 195, 25 };
 			uint decimRate = (parameterShadow[adcConfigParam] >> 5) & 0x03;
 			// conversion time in microseconds,
-			// two readings are taken for each measurement
+			// two readings are taken for each measurement, first is dark channel?
 			ulong ctus = measTime[decimRate] * (1 << hwGain) * 2;
 			// add processing time per measurement 155uS, p35
 			ctus += (155 * 2);
@@ -779,7 +797,6 @@ bool Si1133Sensor::calculateConversionTime(ulong* conversionTimeMs)
 	return true;		// amazing, it worked!
 }
 
-
 //TODO This is your homework :-)
 bool Si1133Sensor::calculateLUX(ulong rawVis, ulong rawIr, float* lux)
 {
@@ -791,22 +808,19 @@ bool Si1133Sensor::calculateLUX(ulong rawVis, ulong rawIr, float* lux)
 // and the decimation filter settings.
 // For a typical diffuser, ADC gain = 9, decimation filter = 3, then this is 
 // the algorithm (data sheet p5),
-//    UV index = 0.0187 * ((0.00391 * Input * Input) + Input))
-// See also AN968: Si1133 UV Index Sensor Electrical and Optical Design Guide
-// https://www.silabs.com/documents/public/application-notes/AN968-Si1133-UV-Index-Sensor-Electrical-and-Optical-Design-Guide.pdf#page=9
+//    UV index = 0.0187 * ((0.00391 * Input^2) + Input))
+// See also AN968: Si1133 UV Index Sensor Electrical and Optical Design Guide, p9
 bool Si1133Sensor::calculateUVI(ulong rawUv, float* uvi)
 {
 	if (rawUv == -1) {
 		*uvi = NAN;
 		return false;
 	}
-	float k = 0.0187f;
-	float m = 0.00391f;
 
-	//TODO modify k according to the diffuser characteristics
-	//TODO adjust rawUv and calculate 'm' according to the settings
+	//TODO modify K according to the diffuser characteristics
+	//TODO adjust rawUv and calculate M according to the settings
 	
-	*uvi = k * ((m * rawUv * rawUv) + rawUv);
+	*uvi = uviK * ((uviM * rawUv * rawUv) + rawUv);
 	return true;
 }
 
@@ -978,8 +992,8 @@ bool Si1133Sensor::readReg(Si1133_REG reg, byte* data, uint length /*=1*/)
 	return true;
 }
 
-// Poll the same register, sending the address only once when
-// first = true, uses "auto increment disable"
+// Poll the same register, sending the address only once when first=true, 
+// uses "auto increment disable"
 bool Si1133Sensor::pollReg(Si1133_REG reg, byte* data, bool first)
 {
 	*data = 0;

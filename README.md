@@ -73,7 +73,17 @@ class Si1133Sensor
 };
 ```
 
-Here are some points to note...
+## Example Sketch
+
+The example shows how to use inheritance to derive a new `Si1133Sensor` class and override the `configureChip()` method for your own custom configuration.
+
+It then polls the chip according to the `conversionTimeMs` value and displays the measurements in decimal or hex.
+
+'auotmaticGainControl()` is used to adjust the gain for the optimum resolution.
+
+<br/>
+
+Here are a few points to note...
 
 ## SW_GAIN (0..7 = 1..128), p32
 
@@ -106,9 +116,9 @@ The number of 21MHz clocks per measurement. Note that two measurements are alway
 
 There are three programmable threshold values. Each channel can use one of these three threshold values, selected according to the `THRESH_SEL` bits for each channel. The `INT` output is is activated if the reading exceeds the threshold value.
 
-The problem is, the value is dependent on `HSIG`, `SW_GAIN` and `HW_GAIN`. If the `automaticGainControl()` feature is used then the threshold value will be invalidated if the gain is changed. 
+The problem is, the threshold value is dependent on `HSIG`, `SW_GAIN` and `HW_GAIN`. If the `automaticGainControl()` feature is used then the threshold value will be invalidated whenever the gain is changed. 
 
-So you cannot use `automaticGainControl()` if you want to use the threshold values. But you can alsways check the normalised values yourself.
+So you cannot use `automaticGainControl()` if you want to use the threshold values. Instead, you can check the normalised values yourself.
 
 ## References
 

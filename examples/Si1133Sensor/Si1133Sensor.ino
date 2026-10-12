@@ -1,6 +1,6 @@
 ///////////////////////////////////////////////////////////////////////////////
 // Example Sketch for Si1133Sensor Library
-// Copyright (C) 2026.10.10, https://muman.ch and https://github.com/mumanchu
+// Copyright (C) 2026.10.12, https://muman.ch + https://github.com/mumanchu
 // If you re-use this software, please include the above copyright notice
 
 #include <Wire.h>
@@ -145,6 +145,7 @@ void pollSi1133()
 
 	// wait 10ms until next poll
 	pollStart += 10;
+	//Serial.println(pollStart);
 
 	// check IRQ, are the readings ready yet?
 	byte irqStatus;
@@ -220,4 +221,3 @@ void loop()
 {
 	pollSi1133();
 }
-

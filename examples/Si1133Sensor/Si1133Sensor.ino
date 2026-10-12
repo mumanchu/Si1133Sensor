@@ -2,6 +2,7 @@
 // Example Sketch for Si1133Sensor Library
 // Copyright (C) 2026.10.12, https://muman.ch + https://github.com/mumanchu
 // If you re-use this software, please include the above copyright notice
+// https://github.com/mumanchu/Si1133Sensor
 
 #include <Wire.h>
 
@@ -168,12 +169,12 @@ void pollSi1133()
 
 	// read all measurements
 	// in FORCED mode all readings are ready at the same time
-	ulong values[4];
+	ulong values[4] = { 0 };
 	uint numberOfValues;
 	if (!si1133.readMeasurements(values, &numberOfValues))
 		return;
 
-	ulong normalisedValues[4];
+	ulong normalisedValues[4] = { 0 };
 	if (!si1133.normaliseMeasurements(values, numberOfValues, normalisedValues))
 		return;
 		

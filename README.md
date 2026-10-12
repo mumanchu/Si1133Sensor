@@ -112,7 +112,7 @@ The values shown in the data sheet are 'nominal measurement time for 512 clocks'
 Other values of DECIM_RATE will increase the measurement time, see the code for `calculateConversionTime()`.
 
 
-## DECIM_RATE (0..3) Decimation Filter, p31
+## DECIM_RATE (0..3), Decimation Filter, p31
 
 The number of 21MHz clocks per measurement. Note that two measurements are always taken, the first is for ADC offset calibration (dark channel?), so multiply the period value by two to get the actual period.
 

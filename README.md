@@ -7,7 +7,7 @@
 
 This really tiny chip (2x2mm) was quite nice. It contained three sensor types, UV, IR and visible light. These were available through seven selectable channels: Small IR, Medium IR, Large IR, White, Large White, UV and UV Deep. The UV index sensor had a sensitivity that _matches the erythemal curve_.
 
-I found only one breakout board that's still available, the strange-looking "UV 4 click" board (above right) from MIKROE (CHF14.50 from Digikey). You can see that the chip at the top of the MIKROE board is the same size as an SMD resistor, but with 10 solder pads instead of two. You can still buy these discrete chips while stocks last (CHF 2.53, or a rip-off CHF 14.-), but good luck soldering it by hand!
+I found only one breakout board that's still available, the strange-looking "UV 4 click" board (above right) from MIKROE (CHF14.50 from Digikey). You can see that the chip at the top of the MIKROE board is the same size as an SMD resistor, but with 10 solder pads instead of two. You can still buy the discrete chips while stocks last (CHF 2.53, or a rip-off CHF 14.-), but good luck soldering it by hand!
 
 ## Installing the Library with the Arduino IDE
 

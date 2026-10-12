@@ -563,6 +563,20 @@ bool Si1133Sensor::automaticGainControl(ulong* values, uint numberOfValues)
 			// hwGain : 0..11, decimRate x 2^hwGain
 			uint hwGain = adcSens & 0x0F;
 
+			// The UV channel behaves differently...
+			// At low UV values with high ALS levels (e.g. full sunlight through a 
+			// glass window which filters the UV), the UV reading is "all over the 
+			// place", jumping between 0 and a high value with consecutive readings. 
+			// This can change the gains and cause oscillation, so some kind of 
+			// damping is required.
+			uint adcMux = parameterShadow[adcConfigParam] & 0x1F;
+			bool uvChannel = adcMux == Si1133_ADC_MUX::UV || adcMux == Si1133_ADC_MUX::UV_DEEP;
+			if (uvChannel) {
+				//TODO UV damping to prevent oscillation
+				// [in progress]
+
+			}
+
 			// should we change the gain for this channel?
 			bool changeGain = false;
 			bool increaseGain = false;

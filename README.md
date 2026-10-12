@@ -1,4 +1,4 @@
-# Arduino Library for the Silicon Labs Si1133 UV, IR and ALS Sensor (obsolete)
+# Arduino Library for the Silicon Labs Si1133 UV, IR and ALS Sensor (Obsolete)
 
 > [!NOTE]
 > The Silicon Labs Si1133 chip is now discontinued and is no longer manufactured. (They are not recommended for new designs :-)

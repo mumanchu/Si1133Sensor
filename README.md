@@ -3,6 +3,11 @@
 > [!NOTE]
 > The Silicon Labs Si1133 chip is now discontinued and is no longer manufactured. (They are not recommended for new designs :-)
 
+<img width="500" height="311" alt="image" src="https://github.com/user-attachments/assets/4feb4436-5b70-4d10-9c36-a11f0728a7e4" />
+
+This really tiny chip (2x2mm) was quite nice. It contained three sensor types, UV, IR and visible light. These were available through seven selectable channels: Small IR, Medium IR, Large IR, White, Large White, UV and UV Deep. The UV index sensor had a sensitivity that _matches the erythemal curve_.
+
+I found only one breakout board that's still available, the strange-looking "UV 4 click" board (above right) from MIKROE (CHF14.50 from Digikey). You can see that the chip at the top of the MIKROE board is the same size as an SMD resistor, but with 10 solder pads instead of two. You can still buy these discrete chips while stocks last (CHF 2.53, or a rip-off CHF 14.-), but good luck soldering it by hand!
 
 ## Installing the Library with the Arduino IDE
 
@@ -12,12 +17,8 @@ Now open the Arduino IDE. Select menu item "Sketch / Include Library > Add ZIP L
 
 To open the example sketch, select menu item "File > Examples" and scroll down beyond "Examples from Custom Libraries" and choose the "Si1133Sensor > Si1133Sensor" entry. This opens the "Si1133Sensor.ino" example sketch in a new Arduino IDE window.
 
-Here are some technical details...
 
-
-
-
-# Class Reference
+## Class Reference
 
 To find out what each method does, open the `src/Si1133Sensor.h` file and read the comments for each method.
 
@@ -72,9 +73,46 @@ class Si1133Sensor
 };
 ```
 
+Here are some points to note...
+
+## SW_GAIN (0..7 = 1..128), p32
+
+This is not really a gain, it is an accumulation of readings for averaging. After the number of readings has been taken the result can be shifted right to divide by the number of readings taken by setting the `ADCPOSTx.POSTSHIFT` value (0..7) to match the number of accumulated readings (0..7 = 1..128). Or you can do that yourself after reading the 24-bit total.
+
+Number of readings to sum = (1 << SW_GAIN)
+
+## HW_GAIN (0..11), p32
+
+This is a true gain setting. It defines the time taken for each measurement. It's the 'nominal measurement time for 512 clocks'.
+
+24.4us * (1 << HW_GAIN)
+
+0=24.4us, 1=48.8us, 2=97.5us, ... 10 (0x0A)=25mS, 11 (0x0B)=50mS
+
+
+## DECIM_RATE Decimation Filter, p31
+
+The number of 21MHz clocks per measurement. Note that two measurements are always taken, the first is for ADC offset calibration (dark channel?), so multiply the period value by two.
+
+| Value | Clocks | Period                 |
+|:----  |:------ |:------                 |
+| 0	    | 1024   | 48.8us * (1 << DECIM_RATE) |
+| 1	    | 2048   | 97.6us * (1 << DECIM_RATE) |
+| 2	    | 4096   | 195us  * (1 << DECIM_RATE) |
+| 3	    | 512    | 24.4us * (1 << DECIM_RATE) |
+
+
+## Threshold Settings. p33
+
+There are three programmable threshold values. Each channel can use one of these three threshold values, selected according to the `THRESH_SEL` bits for each channel. The `INT` output is is activated if the reading exceeds the threshold value.
+
+The problem is, the value is dependent on `HSIG`, `SW_GAIN` and `HW_GAIN`. If the `automaticGainControl()` feature is used then the threshold value will be invalidated if the gain is changed. 
+
+So you cannot use `automaticGainControl()` if you want to use the threshold values. But you can alsways check the normalised values yourself.
+
 ## References
 
-**Data Sheet, Rev. 0.91** \
+**S11133 Data Sheet, Rev. 0.91** \
 All page numbers refer to this version of the data sheet \
 https://muman.ch/pub/Si1133.pdf
 

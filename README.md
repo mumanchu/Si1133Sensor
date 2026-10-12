@@ -77,9 +77,9 @@ class Si1133Sensor
 
 The example shows how to use inheritance to derive a new `Si1133Sensor` class and override the `configureChip()` method for your own custom configuration.
 
-It then polls the chip according to the `conversionTimeMs` value and displays the measurements in decimal or hex.
+It then polls the chip's IRQ_STATUS according to the `conversionTimeMs` value and displays the measurements in decimal or hex.
 
-'auotmaticGainControl()` is used to adjust the gain for the optimum resolution.
+`automaticGainControl()` is used to adjust the gain for the optimum resolution.
 
 <br/>
 

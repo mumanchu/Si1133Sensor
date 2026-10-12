@@ -220,4 +220,19 @@ void pollSi1133()
 void loop()
 {
 	pollSi1133();
+
+	#ifdef STM32_CORE_VERSION
+	// Experimental, for STM32 HAL only
+	// if I2C fails, it often hangs and must be reset
+	// do this here so it works for all I2C bus devices
+	I2C_HandleTypeDef* i2cHandle = Wire.getHandle();
+	if (i2cHandle && i2cHandle->ErrorCode != 0) {
+		ulong clockSpeed = i2cHandle->Init.ClockSpeed;
+		Wire.end();
+		delay(100);
+		Wire.begin();
+		Wire.setClock(clockSpeed);
+		Wire.setTimeout(100);
+	}
+	#endif
 }

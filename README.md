@@ -112,7 +112,7 @@ The number of 21MHz clocks per measurement. Note that two measurements are alway
 | 3	    | 512    | 24.4us * (1 << DECIM_RATE) |
 
 
-## Threshold Settings. p33
+## Threshold Settings, p33
 
 There are three programmable threshold values. Each channel can use one of these three threshold values, selected according to the `THRESH_SEL` bits for each channel. The `INT` output is is activated if the reading exceeds the threshold value.
 

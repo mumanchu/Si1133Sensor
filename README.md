@@ -89,27 +89,28 @@ Here are a few points to note...
 
 This is not really a gain, it is an accumulation of readings for averaging. After the number of readings has been taken the result can be shifted right to divide by the number of readings taken by setting the `ADCPOSTx.POSTSHIFT` value (0..7) to match the number of accumulated readings (0..7 = 1..128). Or you can do that yourself after reading the 24-bit total.
 
-Number of readings to sum = (1 << SW_GAIN)
+Number of readings to sum = `(1 << SW_GAIN)`
 
 ## HW_GAIN (0..11), p32
 
-This is a true gain setting. It defines the time taken for each measurement. It's the 'nominal measurement time for 512 clocks'.
+This is a true gain setting. It defines the time taken for each measurement. 
 
-24.4us * (1 << HW_GAIN)
-
+The values shown in the data sheet are 'nominal measurement time for 512 clocks', `24.4us * (1 << HW_GAIN)`, which is for a `DECIM_RATE` of 3:\
 0=24.4us, 1=48.8us, 2=97.5us, ... 10 (0x0A)=25mS, 11 (0x0B)=50mS
 
+Other values of DECIM_RATE will increase the measurement time, see the code for `calculateConversionTime()`.
 
-## DECIM_RATE Decimation Filter, p31
 
-The number of 21MHz clocks per measurement. Note that two measurements are always taken, the first is for ADC offset calibration (dark channel?), so multiply the period value by two.
+## DECIM_RATE (0..3) Decimation Filter, p31
+
+The number of 21MHz clocks per measurement. Note that two measurements are always taken, the first is for ADC offset calibration (dark channel?), so multiply the period value by two to get the actual period.
 
 | Value | Clocks | Period                 |
 |:----  |:------ |:------                 |
-| 0	    | 1024   | 48.8us * (1 << DECIM_RATE) |
-| 1	    | 2048   | 97.6us * (1 << DECIM_RATE) |
-| 2	    | 4096   | 195us  * (1 << DECIM_RATE) |
-| 3	    | 512    | 24.4us * (1 << DECIM_RATE) |
+| 0	    | 1024   | 48.8us * (1 << HW_GAIN) |
+| 1	    | 2048   | 97.6us * (1 << HW_GAIN) |
+| 2	    | 4096   | 195us  * (1 << HW_GAIN) |
+| 3	    | 512    | 24.4us * (1 << HW_GAIN) |
 
 
 ## Threshold Settings, p33
@@ -137,10 +138,9 @@ https://www.silabs.com/documents/public/application-notes/AN968-Si1133-UV-Index-
 |:---------- |:---------|:----------- |
 | 2026.10.12 | 0.0.0	| Preliminary |
 
-<br/>
 
 ## Joke of the Week
 
-I'm lactose intolerant. \
-I hate people without toes.
+"_It's enough to make a Chef turn in his gravy._"
+
 

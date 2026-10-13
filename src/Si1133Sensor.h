@@ -309,12 +309,12 @@ bool MySi1133Sensor::configureChip()
 	// Your configuration
 	static const Si1133_CONFIG defaultConfig[] =
 	{
-		//     Bit   76543210          76543210
-		CHAN_LIST,	0b00001111,     // 00543210, 1 bit per channel, 0x00=all channels disabled
+		//     Bit    76543210         76543210
+		CHAN_LIST,  0b00001111,     // 00543210, 1 bit per channel, 0x00=all channels disabled
 		// Channel 0, UV sensor
-		ADCCONFIG0,	0b00011000,     // 0rrmmmmm, rr=DECIM_RATE, mmmmm=ADCMUX, p31
-		ADCSENS0,	0b10000001,     // gssshhhh, g=HSIG, sss=SW_GAIN, hhhh=HW_GAIN, p32
-		ADCPOST0,	0b01000000,     // 0nppp0tt, n=24BIT_OUT, ppp=POSTSHIFT, tt=THRESH_EN, p33
+		ADCCONFIG0, 0b00011000,     // 0rrmmmmm, rr=DECIM_RATE, mmmmm=ADCMUX, p31
+		ADCSENS0,   0b10000001,     // gssshhhh, g=HSIG, sss=SW_GAIN, hhhh=HW_GAIN, p32
+		ADCPOST0,   0b01000000,     // 0nppp0tt, n=24BIT_OUT, ppp=POSTSHIFT, tt=THRESH_EN, p33
 		MEASCONFIG0,0b00000000,     // cc000000, cc=MEASCOUNTx index (00=FORCED or BURST mode), p34
 		// Channel 1, LARGE_WHITE sensor
 		ADCCONFIG1,	0b00001101,
@@ -488,7 +488,7 @@ bool Si1133Sensor::readMeasurements(ulong* values, uint* numberOfValues,
 			ulong value;
 			byte adcPost = parameterShadow[ADCPOST0 + (channel * 4)];
 			if (adcPost & 0x40) {
-				// 24-bit signed value
+				// 24-bit *signed* value
 				value = (dataPtr[0] << 16) + (dataPtr[1] << 8) + dataPtr[2];
 				if (value & 0x800000)	// -ve value? set it to zero
 					value = 0;
@@ -542,6 +542,12 @@ bool Si1133Sensor::automaticGainControl(ulong* values, uint numberOfValues)
 			}
 			ulong value = values[ixValue++];
 
+			// if zero, something's wrong, skip this channel
+			if (value == 0) {
+				channelMask <<= 1;
+				continue;
+			}
+
 			// Channel x  Bit 76543210 (see data sheet p31..34)
 			// ADCCONFIGx     0rrmmmmm, rr=DECIM_RATE, mmmmm=ADCMUX, p31
 			// ADCSENSx       gssshhhh, g=HSIG, sss=SW_GAIN, hhhh=HW_GAIN, p32
@@ -580,13 +586,13 @@ bool Si1133Sensor::automaticGainControl(ulong* values, uint numberOfValues)
 			if (bits24) {
 				// 24-bit signed value 
 				// (value has been set to 0 if -ve, see readMeasurements())
-				increaseGain = value < 0xFFF;
-				decreaseGain = value > 0xFFFFF;
+				increaseGain = value < 0x3FF;
+				decreaseGain = value > 0x1FFFFF;
 			}
 			else {
 				// 16-bit unsigned value
-				increaseGain = value < 0xFF;
-				decreaseGain = value > 0xFFF;
+				increaseGain = value < 0x3F;
+				decreaseGain = value > 0x7FFF;
 			}
 			if (increaseGain) {
 				if (hwGain < 11) {
@@ -612,18 +618,18 @@ bool Si1133Sensor::automaticGainControl(ulong* values, uint numberOfValues)
 			}
 
 			// The UV channel behaves differently...
-			// At low UV values with high ALS levels (e.g. full sunlight through a 
-			// glass window which filters out the UV), the UV reading is "all over the 
-			// place", jumping between 0 and a high value with consecutive readings. 
-			// This can change the gain and cause oscillation (increase gain/decrease 
-			// gain on subsequent calls), so some kind of damping is required.
+			// At low UV values with high ALS levels (e.g. full sunlight through a glass 
+			// window which filters out the UV), the UV reading is "all over the place", 
+			// jumping between 0 and a high value with consecutive readings. 
+			// This can change the gain and cause oscillation (increase gain -> overflow ->
+			// decrease gain, on subsequent calls), so special damping is required.
 			uint adcMux = parameterShadow[adcConfigParam] & 0x1F;
 			bool uvChannel = adcMux == Si1133_ADC_MUX::UV || adcMux == Si1133_ADC_MUX::UV_DEEP;
 			if (uvChannel && increaseGain) {
 				// UV damping to prevent oscillation
 				// do not increase the gain if it's already high and the UV reading is 
 				// still very low
-				if (hwGain > 9 && value < (bits24 ? 500 : 200))
+				if (hwGain > 4 && value < (bits24 ? 700 : 300))
 					changeGain = false;
 			}
 
@@ -633,7 +639,7 @@ bool Si1133Sensor::automaticGainControl(ulong* values, uint numberOfValues)
 
 				#ifdef DEBUG
 				char buf[128];
-				sprintf(buf, "gain %s : channel=%u gain=%u", increaseGain ? "incresed" : "decreased",
+				sprintf(buf, "gain %s : channel %u gain=%u", increaseGain ? "increased" : "decreased",
 					channel, hwGain);
 				LOGERROR(buf);
 				#endif

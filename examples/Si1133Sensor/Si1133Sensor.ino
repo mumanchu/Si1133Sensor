@@ -34,26 +34,26 @@ bool MySi1133Sensor::configureChip()
 	static const Si1133_CONFIG defaultConfig[] =
 	{
 		//      Bit   76543210         76543210
-		CHAN_LIST,	0b00001111,     // 00543210, 1 bit per channel, 0x00=all channels disabled
+		CHAN_LIST,  0b00001111,     // 00543210, 1 bit per channel, 0x00=all channels disabled
 		// Channel 0, UV sensor
-		ADCCONFIG0,	0b00011000,     // 0rrmmmmm, rr=DECIM_RATE, mmmmm=ADCMUX, p31
-		ADCSENS0,	0b10000000,     // gssshhhh, g=HSIG, sss=SW_GAIN, hhhh=HW_GAIN, p32
-		ADCPOST0,	0b00000000,     // 0nppp0tt, n=24BIT_OUT, ppp=POSTSHIFT, tt=THRESH_SEL, p33
+		ADCCONFIG0, 0b00011000,     // 0rrmmmmm, rr=DECIM_RATE, mmmmm=ADCMUX, p31
+		ADCSENS0,   0b10000000,     // gssshhhh, g=HSIG, sss=SW_GAIN, hhhh=HW_GAIN, p32
+		ADCPOST0,   0b01000000,     // 0nppp0tt, n=24BIT_OUT, ppp=POSTSHIFT, tt=THRESH_SEL, p33
 		MEASCONFIG0,0b00000000,     // cc000000, cc=MEASCOUNTx index (00=FORCED or BURST mode), p34
 		// Channel 1, LARGE_WHITE sensor
 		ADCCONFIG1,	0b01001101,
 		ADCSENS1,	0b10000000,
-		ADCPOST1,	0b00000000,
+		ADCPOST1,	0b01000000,
 		MEASCONFIG1,0b00000000,
 		// Channel 2, MEDIUM_IR sensor
 		ADCCONFIG2,	0b01000001,
 		ADCSENS2,	0b10000000,
-		ADCPOST2,	0b00000000,
+		ADCPOST2,	0b01000000,
 		MEASCONFIG2,0b00000000,
 		// Channel 3, WHITE sensor
 		ADCCONFIG3,	0b01001011,
 		ADCSENS3,	0b10000000,
-		ADCPOST3,	0b00000000,
+		ADCPOST3,	0b01000000,
 		MEASCONFIG3,0b00000000,
 
 		// Forced mode
@@ -178,7 +178,7 @@ void pollSi1133()
 	if (!si1133.normaliseMeasurements(values, numberOfValues, normalisedValues))
 		return;
 		
-	#if 1
+	#if 0
 	// DECIMAL
 
 	// display raw values

@@ -9,6 +9,8 @@ This really tiny chip (2x2mm) was quite nice. It contained three sensor types, U
 
 I found only one breakout board that's still available, the strange-looking "UV 4 click" board (above right) from MIKROE (CHF14.50 from Digikey). You can see that the chip at the top of the MIKROE board is the same size as an SMD resistor, but with 10 solder pads instead of two. You can still buy the discrete chips while stocks last (CHF 2.53, or a rip-off CHF 14.-), but good luck soldering it by hand!
 
+The original code was to evaluate the sensor for an outdoor solar positioning system. The UV Index and LUX calculations were not needed. 
+
 ## Installing the Library with the Arduino IDE
 
 First, download the latest library Zip file from with the green button on the library's Github screen, "<> Code / Download Zip". This creates a file called "Si1133Sensor-main.zip" in your Downloads directory.

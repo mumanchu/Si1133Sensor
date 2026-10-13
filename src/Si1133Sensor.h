@@ -623,7 +623,7 @@ bool Si1133Sensor::automaticGainControl(ulong* values, uint numberOfValues)
 				// UV damping to prevent oscillation
 				// do not increase the gain if it's already high and the UV reading is 
 				// still very low
-				if (hwGain > 9 && value < (bits24 ? 1000 : 200))
+				if (hwGain > 9 && value < (bits24 ? 500 : 200))
 					changeGain = false;
 			}
 

@@ -2,7 +2,6 @@
 // Example Sketch for Si1133Sensor Library
 // Copyright (C) 2026.10.12, https://muman.ch + https://github.com/mumanchu
 // If you re-use this software, please include the above copyright notice
-// https://github.com/mumanchu/Si1133Sensor
 
 #include <Wire.h>
 
@@ -37,24 +36,24 @@ bool MySi1133Sensor::configureChip()
 		//      Bit   76543210         76543210
 		CHAN_LIST,	0b00001111,     // 00543210, 1 bit per channel, 0x00=all channels disabled
 		// Channel 0, UV sensor
-		ADCCONFIG0,	0b01011000,     // 0rrmmmmm, rr=DECIM_RATE, mmmmm=ADCMUX, p31
+		ADCCONFIG0,	0b00011000,     // 0rrmmmmm, rr=DECIM_RATE, mmmmm=ADCMUX, p31
 		ADCSENS0,	0b10000000,     // gssshhhh, g=HSIG, sss=SW_GAIN, hhhh=HW_GAIN, p32
-		ADCPOST0,	0b01000000,     // 0nppp0tt, n=24BIT_OUT, ppp=POSTSHIFT, tt=THRESH_SEL, p33
+		ADCPOST0,	0b00000000,     // 0nppp0tt, n=24BIT_OUT, ppp=POSTSHIFT, tt=THRESH_SEL, p33
 		MEASCONFIG0,0b00000000,     // cc000000, cc=MEASCOUNTx index (00=FORCED or BURST mode), p34
 		// Channel 1, LARGE_WHITE sensor
 		ADCCONFIG1,	0b01001101,
 		ADCSENS1,	0b10000000,
-		ADCPOST1,	0b01000000,
+		ADCPOST1,	0b00000000,
 		MEASCONFIG1,0b00000000,
 		// Channel 2, MEDIUM_IR sensor
 		ADCCONFIG2,	0b01000001,
 		ADCSENS2,	0b10000000,
-		ADCPOST2,	0b01000000,
+		ADCPOST2,	0b00000000,
 		MEASCONFIG2,0b00000000,
 		// Channel 3, WHITE sensor
 		ADCCONFIG3,	0b01001011,
 		ADCSENS3,	0b10000000,
-		ADCPOST3,	0b01000000,
+		ADCPOST3,	0b00000000,
 		MEASCONFIG3,0b00000000,
 
 		// Forced mode
@@ -109,6 +108,7 @@ void setup()
 
 	Wire.begin();
 	Wire.setClock(400000);
+	Wire.setTimeout(100);
 
 	if (!si1133.begin(&Wire)) {
 		Serial.println("si1133.begin() failed");
@@ -171,14 +171,14 @@ void pollSi1133()
 	// in FORCED mode all readings are ready at the same time
 	ulong values[4] = { 0 };
 	uint numberOfValues;
-	if (!si1133.readMeasurements(values, &numberOfValues))
+	if (!si1133.readMeasurements(values, &numberOfValues, 4))
 		return;
 
 	ulong normalisedValues[4] = { 0 };
 	if (!si1133.normaliseMeasurements(values, numberOfValues, normalisedValues))
 		return;
 		
-	#if 1 
+	#if 1
 	// DECIMAL
 
 	// display raw values
@@ -222,10 +222,11 @@ void loop()
 {
 	pollSi1133();
 
+
 	#ifdef STM32_CORE_VERSION
 	// Experimental, for STM32 HAL only
-	// if I2C fails, it often hangs and must be reset
-	// do this here so it works for all I2C bus devices
+	// if I2C fails, it often hangs and the bus must be reset
+	// do this here so it works for all I2C devices
 	I2C_HandleTypeDef* i2cHandle = Wire.getHandle();
 	if (i2cHandle && i2cHandle->ErrorCode != 0) {
 		ulong clockSpeed = i2cHandle->Init.ClockSpeed;
@@ -236,4 +237,6 @@ void loop()
 		Wire.setTimeout(100);
 	}
 	#endif
+
 }
+

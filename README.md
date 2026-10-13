@@ -144,6 +144,9 @@ https://muman.ch/pub/Si1133.pdf
 UV Index calculation details, diffuser, etc. \
 https://www.silabs.com/documents/public/application-notes/AN968-Si1133-UV-Index-Sensor-Electrical-and-Optical-Design-Guide.pdf
 
+**Silicon Labs code** \
+For reference, \
+https://github.com/ryankurte/efm32-base/blob/master/hardware/kit/common/bsp/thunderboard/si1133.c
 
 ## Revision History
 

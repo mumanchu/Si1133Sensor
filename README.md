@@ -148,6 +148,10 @@ https://www.silabs.com/documents/public/application-notes/AN968-Si1133-UV-Index-
 For reference, \
 https://github.com/ryankurte/efm32-base/blob/master/hardware/kit/common/bsp/thunderboard/si1133.c
 
+**MIKROE UV4 Click Breakout Board** \
+https://www.mikroe.com/uv-4-click
+
+
 ## Revision History
 
 | Date  | Revision | Description |

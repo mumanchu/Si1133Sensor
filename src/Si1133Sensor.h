@@ -8,7 +8,7 @@
 Full details of this Arduino-style library can be found here,
 https://github.com/mumanchu/Si1133Sensor
 
-And there's more in the original blog about UV Sensors
+There's more in the original blog about UV Sensors,
 https://muman.ch/index.htm?muman-uv-sensors.htm
 
 DATA SHEET, Rev. 0.91
@@ -202,7 +202,7 @@ public:
 	bool startAutonomousMeasurements();
 	bool pauseAutonomousMeasurements();
 	uint getNumberOfChannels();
-	bool readMeasurements(ulong* values, uint* numberOfValues);
+	bool readMeasurements(ulong* values, uint* numberOfValues, uint maxValues);
 	bool automaticGainControl(ulong* values, uint numberOfValues);
 	bool normaliseMeasurements(const ulong* values, uint numberOfValues, ulong* normalisedValues);
 	bool calculateConversionTime(ulong* conversionTimeMs);
@@ -225,7 +225,6 @@ protected:
 	bool writeReg(Si1133_REG reg, const byte* data, uint length = 1);
 	bool readReg(Si1133_REG reg, byte* data, uint length = 1);
 	bool pollReg(Si1133_REG reg, byte* data, bool first);
-
 };
 
 
@@ -454,7 +453,8 @@ uint Si1133Sensor::getNumberOfChannels()
 // use the lower 16 bits.
 // Saturation/overflow is returned as 0xFFFFFFFF (-1) for both 16 and 24-bit 
 // values (not 0xFFFF for 16-bit and 0x7FFFFF for 24-bit).
-bool Si1133Sensor::readMeasurements(ulong* values, uint* numberOfValues)
+bool Si1133Sensor::readMeasurements(ulong* values, uint* numberOfValues,
+	uint maxValues)
 {
 	*numberOfValues = 0;
 
@@ -464,13 +464,13 @@ bool Si1133Sensor::readMeasurements(ulong* values, uint* numberOfValues)
 		return false;
 
 	// read all possible measurements, 6 channels * 24 bits = 18 bytes
-	// 18 bytes in auto-increment-address-mode, the overhead is not significant
-	// (it's usually around 12 bytes, depending on the configuration)
+	// 18 bytes in auto-increment-address-mode, the overhead is not 
+	// significant (the required data is usually around 12 bytes)
 	byte data[18];
 	if (!readReg(HOSTOUT0, data, 18))
 		return false;
 
-	// create an array of ulong values from the 16 or 24-bit data for each
+	// update the array of ulong values from the 16 or 24-bit data for each
 	// channel, according to the configuration
 	byte* dataPtr = data;
 	uint channelMask = 1;
@@ -478,8 +478,13 @@ bool Si1133Sensor::readMeasurements(ulong* values, uint* numberOfValues)
 	uint chanList = parameterShadow[CHAN_LIST];
 
 	for (uint channel = 0; channel < 6; ++channel) {
+
 		// if channel is configured, return the measurement, 16 or 24 bits
 		if (chanList & channelMask) {
+			if (numberOfChannels == maxValues) {
+				LOGERROR("too many values");
+				return false;
+			}
 			ulong value;
 			byte adcPost = parameterShadow[ADCPOST0 + (channel * 4)];
 			if (adcPost & 0x40) {
@@ -513,8 +518,9 @@ bool Si1133Sensor::readMeasurements(ulong* values, uint* numberOfValues)
 // As light/UV/IR levels fall, the gains increase and the conversion time also
 // increases. Use the 'conversionTimeMs' value to regulate the IRQ_STATUS polling.
 // 'values' & 'numberOfValues' are the raw values returned by readMeasurements().
-// The DECIM_RATE remains fixed.
-// TODO also update the M factor used by calculateUVI().
+// The DECIM_RATE is not changed.
+//TODO update the M factor used by calculateUVI() if gain is changed
+//TODO filter outliers to prevent oscillation
 bool Si1133Sensor::automaticGainControl(ulong* values, uint numberOfValues)
 {
 	uint channelMask = 1;
@@ -548,6 +554,9 @@ bool Si1133Sensor::automaticGainControl(ulong* values, uint numberOfValues)
 			uint adcPostParam = adcConfigParam + 2;
 			uint measConfigParam = adcConfigParam + 3;
 
+			// true = 24 bits, false = 16 bits
+			bool bits24 = (parameterShadow[adcPostParam] & 0b01000000) != 0;
+
 			// not supported for autonomous mode
 			if ((parameterShadow[measConfigParam] & 0b11000000) != 0) {
 				LOGERROR("FORCED mode only");
@@ -563,32 +572,19 @@ bool Si1133Sensor::automaticGainControl(ulong* values, uint numberOfValues)
 			// hwGain : 0..11, decimRate x 2^hwGain
 			uint hwGain = adcSens & 0x0F;
 
-			// The UV channel behaves differently...
-			// At low UV values with high ALS levels (e.g. full sunlight through a 
-			// glass window which filters the UV), the UV reading is "all over the 
-			// place", jumping between 0 and a high value with consecutive readings. 
-			// This can change the gains and cause oscillation, so some kind of 
-			// damping is required.
-			uint adcMux = parameterShadow[adcConfigParam] & 0x1F;
-			bool uvChannel = adcMux == Si1133_ADC_MUX::UV || adcMux == Si1133_ADC_MUX::UV_DEEP;
-			if (uvChannel) {
-				//TODO UV damping to prevent oscillation
-				// [in progress]
-
-			}
-
 			// should we change the gain for this channel?
 			bool changeGain = false;
 			bool increaseGain = false;
 			bool decreaseGain = false;
 			// switching points depend on 16 or 24 bits
-			if (parameterShadow[adcPostParam] & 0b01000000) {
-				// 24 bit signed value (already set to 0 if -ve, see readMeasurements())
+			if (bits24) {
+				// 24-bit signed value 
+				// (value has been set to 0 if -ve, see readMeasurements())
 				increaseGain = value < 0xFFF;
 				decreaseGain = value > 0xFFFFF;
 			}
 			else {
-				// 16 bit unsigned value
+				// 16-bit unsigned value
 				increaseGain = value < 0xFF;
 				decreaseGain = value > 0xFFF;
 			}
@@ -615,7 +611,23 @@ bool Si1133Sensor::automaticGainControl(ulong* values, uint numberOfValues)
 				}
 			}
 
-			// if changed, update the parameter
+			// The UV channel behaves differently...
+			// At low UV values with high ALS levels (e.g. full sunlight through a 
+			// glass window which filters out the UV), the UV reading is "all over the 
+			// place", jumping between 0 and a high value with consecutive readings. 
+			// This can change the gain and cause oscillation (increase gain/decrease 
+			// gain on subsequent calls), so some kind of damping is required.
+			uint adcMux = parameterShadow[adcConfigParam] & 0x1F;
+			bool uvChannel = adcMux == Si1133_ADC_MUX::UV || adcMux == Si1133_ADC_MUX::UV_DEEP;
+			if (uvChannel && increaseGain) {
+				// UV damping to prevent oscillation
+				// do not increase the gain if it's already high and the UV reading is 
+				// still very low
+				if (hwGain > 9 && value < (bits24 ? 1000 : 200))
+					changeGain = false;
+			}
+
+			// if changed, update the parameter value
 			if (changeGain) {
 				gainChanged = true;
 
@@ -632,7 +644,7 @@ bool Si1133Sensor::automaticGainControl(ulong* values, uint numberOfValues)
 			}
 
 			// update the total conversion time in microseconds
-			// measurement times in microseconds, p31
+			// measTime = measurement times in microseconds, p31
 			static const byte measTime[4] = { 50, 98, 195, 25 };
 			uint decimRate = (parameterShadow[adcConfigParam] >> 5) & 0x03;
 			// conversion time in microseconds, 
@@ -654,7 +666,7 @@ bool Si1133Sensor::automaticGainControl(ulong* values, uint numberOfValues)
 
 // Adjust the measurements according to the gain etc.
 // All are normalised to the highest gain x128, for other gains just shift 
-// the 32-bit results right.
+// the 32-bit 'normalisedValues' right.
 // 'values' must point to the raw values returned by readMeasurements()
 // 'numberOfValues' must match the number of channels
 bool Si1133Sensor::normaliseMeasurements(const ulong* values, uint numberOfValues, 
@@ -749,12 +761,13 @@ bool Si1133Sensor::normaliseMeasurements(const ulong* values, uint numberOfValue
 
 // Calculate the total conversion time in milliseconds for all channels
 // >>> FOR FORCED MODE ONLY! <<<
-// It takes into account the defined channels, HW_GAIN, SW_GAIN and DECIM_RATE.
+// Takes into account the defined channels, HW_GAIN, SW_GAIN and DECIM_RATE.
 // Note that the conversion time is also calculated when automaticGainControl() 
 // is called, so you can adjust the IRQ_STATUS polling rate according to the
-// conversion time.
-// TODO This always comes out about 2..4% too low when compared to the actual 
-// conversion time.
+// new conversion time if the gains are adjusted.
+// Note: This always comes out about 2..4% too low when compared to the actual 
+// conversion time, but that's ok, just continue polling every 10ms or so after
+// this, as in the example sketch.
 bool Si1133Sensor::calculateConversionTime(ulong* conversionTimeMs)
 {
 	uint channelMask = 1;
@@ -791,7 +804,7 @@ bool Si1133Sensor::calculateConversionTime(ulong* conversionTimeMs)
 			// hwGain : 0..11, decimRate x 2^hwGain
 			uint hwGain = adcSens & 0x0F;
 
-			// measurement times in microseconds, rounded up, p31
+			// measTime[] = measurement times in microseconds, rounded up, p31
 			static const byte measTime[4] = { 50, 98, 195, 25 };
 			uint decimRate = (parameterShadow[adcConfigParam] >> 5) & 0x03;
 			// conversion time in microseconds,

@@ -66,7 +66,7 @@ class Si1133Sensor
 	bool startAutonomousMeasurements();
 	bool pauseAutonomousMeasurements();
 	uint getNumberOfChannels();
-	bool readMeasurements(ulong* values, uint* numberOfValues);
+	bool readMeasurements(ulong* values, uint* numberOfValues, uint maxValues);
 	bool automaticGainControl(ulong* values, uint numberOfValues);
 	bool normaliseMeasurements(const ulong* values, uint numberOfValues, ulong* normalisedValues);
 	bool calculateConversionTime(ulong* conversionTimeMs);
@@ -153,6 +153,7 @@ https://github.com/ryankurte/efm32-base/blob/master/hardware/kit/common/bsp/thun
 | Date  | Revision | Description |
 |:---------- |:---------|:----------- |
 | 2026.10.12 | 0.0.0	| Preliminary |
+| 2026.10.13 | 0.0.1    | Improved automaticGainControl() to prevent oscillation |
 
 
 ## Joke of the Week

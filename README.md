@@ -13,7 +13,7 @@ The original code was to evaluate the sensor for an outdoor solar positioning sy
 
 ## Installing the Library with the Arduino IDE
 
-First, download the latest library Zip file from with the green button on the library's Github screen, "<> Code / Download Zip". This creates a file called "Si1133Sensor-main.zip" in your Downloads directory.
+First, download the latest library Zip file via the green button on the library's Github screen, "<> Code / Download Zip". This creates a file called "Si1133Sensor-main.zip" in your Downloads directory.
 
 Now open the Arduino IDE. Select menu item "Sketch / Include Library > Add ZIP Library...". This opens the "Select ZIP File" window. Open the Downloads directory and choose the "Si1133Sensor-main.zip" file you just downloaded. You should see a "Successfully installed library" popup on the bottom right.
 
